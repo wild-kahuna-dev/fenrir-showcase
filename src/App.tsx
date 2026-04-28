@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import fenrirMark from "./assets/fenrir.png";
 import { showcaseData, type CodeSample, type Pipeline, type PnlPoint } from "./data/showcaseData";
 import LiveTradingPage from "./LiveTradingPage";
 
@@ -276,11 +277,10 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <div>
-          <span className="eyebrow">Fenrir portfolio demo</span>
-          <h1>Trading infrastructure showcase</h1>
-          <p>{showcaseData.sourceNote}</p>
-        </div>
+        <a className="brand-lockup" href="#" aria-label="Fenrir showcase home">
+          <img src={fenrirMark} alt="" />
+          <span>Fenrir</span>
+        </a>
         <nav aria-label="Showcase sections">
           {sections.map((section) => (
             <button
@@ -303,5 +303,3 @@ export default function App() {
     </main>
   );
 }
-
-
