@@ -3,9 +3,10 @@ import fenrirMark from "./assets/fenrir.png";
 import { showcaseData, type CodeSample, type Pipeline, type PnlPoint } from "./data/showcaseData";
 import LiveTradingPage from "./LiveTradingPage";
 
-type SectionKey = "live" | "dashboard" | "pipelines" | "architecture" | "samples";
+type SectionKey = "home" | "live" | "dashboard" | "pipelines" | "architecture" | "samples";
 
 const sections: { key: SectionKey; label: string }[] = [
+  { key: "home", label: "Home" },
   { key: "live", label: "Live Trading" },
   { key: "dashboard", label: "Dashboard" },
   { key: "pipelines", label: "Pipelines" },
@@ -14,6 +15,52 @@ const sections: { key: SectionKey; label: string }[] = [
 ];
 
 const numberFormatter = new Intl.NumberFormat("en-US");
+type HomeLandingProps = {
+  onNavigate: (section: SectionKey) => void;
+};
+
+function HomeLanding({ onNavigate }: HomeLandingProps) {
+  return (
+    <section className="home-landing" aria-labelledby="home-title">
+      <div className="home-graphic" aria-hidden="true">
+        <div className="home-orbit orbit-one" />
+        <div className="home-orbit orbit-two" />
+        <div className="home-mark-core">
+          <img src={fenrirMark} alt="" />
+        </div>
+        <div className="home-node node-data">
+          <span>Market data</span>
+          <strong>ingest</strong>
+        </div>
+        <div className="home-node node-research">
+          <span>Research</span>
+          <strong>backtest</strong>
+        </div>
+        <div className="home-node node-live">
+          <span>Live systems</span>
+          <strong>execute</strong>
+        </div>
+        <div className="home-flow-line line-a" />
+        <div className="home-flow-line line-b" />
+      </div>
+
+      <div className="home-copy">
+        <span className="section-kicker">Fenrir portfolio demo</span>
+        <h1 id="home-title">Private trading infrastructure, shown safely.</h1>
+        <p>
+          Fenrir is the portfolio face of my private st-engine project: a database-centered trading platform for market-data ingestion,
+          vectorized research and backtesting, strategy refinement, scheduled jobs, live bot orchestration, and execution monitoring.
+          This demo uses sanitized data and architecture views to show the engineering scale without exposing private source code.
+        </p>
+        <div className="home-actions" aria-label="Landing page actions">
+          <button className="primary" type="button" onClick={() => onNavigate("live")}>Live Trading</button>
+          <button type="button" onClick={() => onNavigate("pipelines")}>Pipelines</button>
+          <button type="button" onClick={() => onNavigate("architecture")}>Architecture</button>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function TrendChart({ points }: { points: PnlPoint[] }) {
   const values = points.map((point) => point.equity);
@@ -272,15 +319,15 @@ function SamplesSection() {
 }
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState<SectionKey>("live");
+  const [activeSection, setActiveSection] = useState<SectionKey>("home");
 
   return (
     <main className="app-shell">
       <header className="app-header">
-        <a className="brand-lockup" href="#" aria-label="Fenrir showcase home">
+        <button className="brand-lockup" type="button" onClick={() => setActiveSection("home")} aria-label="Fenrir showcase home">
           <img src={fenrirMark} alt="" />
           <span>Fenrir</span>
-        </a>
+        </button>
         <nav aria-label="Showcase sections">
           {sections.map((section) => (
             <button
@@ -295,6 +342,7 @@ export default function App() {
         </nav>
       </header>
 
+      {activeSection === "home" && <HomeLanding onNavigate={setActiveSection} />}
       {activeSection === "live" && <LiveTradingPage />}
       {activeSection === "dashboard" && <DashboardSection />}
       {activeSection === "pipelines" && <PipelinesSection />}
@@ -303,3 +351,4 @@ export default function App() {
     </main>
   );
 }
+
