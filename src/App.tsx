@@ -17,55 +17,176 @@ const sections: { key: SectionKey; label: string }[] = [
 const pipelineHighlights = [
   {
     title: "Generic job contract",
-    detail: "Jobs enter through a shared config/result boundary, which keeps ingestion, filtering, backtests, and live bots easy to add without bespoke UI paths.",
-    metric: "one runner"
+    detail: "Jobs are defined in the database with config, schedules, and model bindings. New workflows plug into an existing execution system instead of creating new entry points.",
+    metric: "shared lifecycle"
   },
   {
     title: "Vectorized research path",
-    detail: "Historical bars and indicators are prepared once, persisted behind stable contracts, and reused across many strategy refinement passes.",
-    metric: "343M+ rows"
+    detail: "Historical data is processed once, stored in parquet, and reused across strategy refinement passes. Compute is amortized across iterations.",
+    metric: "parquet reuse"
   },
   {
     title: "Live recompute loop",
-    detail: "The live path narrows symbols first, then repeatedly recomputes indicators and strategy conditions from fresh bars for selected candidates.",
-    metric: "250 bars"
+    detail: "Live trading recomputes indicators and conditions from fresh bars instead of relying on stale precomputed signals.",
+    metric: "fresh bars"
   }
 ];
 
 const pipelineFlow = [
-  { step: "01", title: "Ingest", body: "Download market data, normalize source records, and write durable parquet/database artifacts." },
-  { step: "02", title: "Filter", body: "Reduce broad symbol sets into smaller watchlists before expensive analysis or live subscriptions." },
-  { step: "03", title: "Backtest", body: "Run strategy/date/symbol workers through shared signal and lifecycle contracts." },
-  { step: "04", title: "Operate", body: "Schedule jobs, start bots, route live bars, and persist run summaries for review." }
+  { step: "01", title: "Ingest", body: "Download and normalize market data. Persist as parquet and database artifacts." },
+  { step: "02", title: "Filter", body: "Reduce large symbol sets into small candidate pools for analysis and live execution." },
+  { step: "03", title: "Backtest", body: "Execute strategy workers across symbol/date partitions using shared contracts." },
+  { step: "04", title: "Operate", body: "Schedule jobs, run bots, process live data, and persist execution summaries." }
+];
+
+const jobLifecycle = ["Register", "Validate", "Execute", "Persist", "Notify", "Chain"];
+
+const scaleReasons = [
+  "New jobs require configuration, not infrastructure",
+  "Execution lifecycle is shared across all workloads",
+  "Persistence is standardized through database contracts",
+  "Parallel workloads use partitioned execution plans",
+  "Results are shaped consistently for API and UI consumption"
 ];
 
 const architectureCards = [
   {
     title: "Database-centered contracts",
-    body: "Configuration, run state, strategy versions, filtering results, and lifecycle outcomes are treated as durable records rather than transient process memory."
+    body: "Jobs, strategies, filtering results, and trading state are stored as durable records. The database acts as the system control plane."
   },
   {
     title: "Thin orchestration",
-    body: "Jobs coordinate validation, partitioning, execution, and persistence while pushing reusable parsing, time handling, and DB result shaping into shared utilities."
+    body: "Services coordinate execution, but do not own state. Orchestration logic is minimal and driven by database records."
   },
   {
-    title: "Backtest/live parity",
-    body: "Backtests and live trading do not run at the same cadence, but they share signal names, decision states, and trade lifecycle vocabulary."
+    title: "Backtest / live parity",
+    body: "Backtests and live trading share signal structures, decision states, and lifecycle events. Timing differs, behavior does not."
   },
   {
     title: "Auditable iteration",
-    body: "Strategy changes are versioned, pipeline outputs are persisted, and project records capture why a direction changed before implementation continues."
+    body: "Strategy versions, job executions, and results are persisted. Every change leaves a trail for analysis and refinement."
   }
 ];
 
-const architectureFlow = ["Job config", "Validated model", "Worker plan", "DB/parquet artifacts", "Run summary"];
+const architectureFlow = ["Postgres", "FastAPI", "Job daemon", "Docker workers", "Fenrir mobile"];
+
+const architectureDiagramNodes = [
+  {
+    id: "mobile",
+    title: "Fenrir mobile app",
+    detail: "React Native operations surface"
+  },
+  {
+    id: "api",
+    title: "FastAPI control layer",
+    detail: "Jobs, charts, bots, notifications"
+  },
+  {
+    id: "db",
+    title: "Postgres control plane",
+    detail: "job, strategy, trading, cortex schemas"
+  },
+  {
+    id: "daemon",
+    title: "Master orchestrator",
+    detail: "Poll schedules, claim work, chain dependents"
+  },
+  {
+    id: "workers",
+    title: "Docker job workers",
+    detail: "Python, process pools, ML libraries"
+  },
+  {
+    id: "storage",
+    title: "Local parquet + backups",
+    detail: "Hot, warm, shared data tiers"
+  },
+  {
+    id: "cortex",
+    title: "Cortex RAG layer",
+    detail: "Docs, chunks, symbols, relationships"
+  },
+  {
+    id: "streams",
+    title: "Market + broker streams",
+    detail: "Websocket intake, REST reconciliation"
+  }
+];
+
+const architectureGroups = [
+  {
+    title: "Control Plane",
+    body: "Postgres schemas manage jobs, strategies, trading lifecycle, and system state."
+  },
+  {
+    title: "Execution Plane",
+    body: "Python workers execute jobs, analysis, backtests, and live trading logic."
+  },
+  {
+    title: "Data Plane",
+    body: "Parquet storage handles high-volume historical and analysis data."
+  },
+  {
+    title: "Interface Layer",
+    body: "FastAPI and mobile UI expose control, monitoring, and workflows."
+  }
+];
+
+const architectureReasons = [
+  "State is centralized and versioned",
+  "Execution is decoupled from persistence",
+  "Contracts enforce consistent data shapes",
+  "Jobs reuse a shared lifecycle",
+  "Results are always persisted and queryable"
+];
+
+const architectureConstraints = [
+  "Single websocket connection for market data",
+  "Local-first compute (no cloud dependency)",
+  "High data volume handled via parquet",
+  "Parallel execution using worker partitioning",
+  "Persistent state required for recovery and auditability"
+];
+
+const architectureTradeoffs = [
+  "Parquet over database for performance",
+  "Centralized stream over per-bot connections",
+  "Recompute in live trading over precomputed signals",
+  "Database contracts over in-memory state"
+];
 
 const aboutFeatures = [
-  "Scheduled data preparation and market-open filtering",
-  "Vectorized research and backtest refinement over large historical datasets",
-  "Live bot orchestration with shared websocket intake and bot-owned state",
-  "Database-first contracts for jobs, strategies, results, and lifecycle state",
-  "Cortex-backed project memory for efficient LLM handoffs and lower-token context retrieval"
+  "End-to-end ownership across data, API, database, workers, mobile UI, and automation",
+  "Realtime decision systems with broker and market-data constraints",
+  "Durable Postgres contracts for jobs, strategies, trading state, and lifecycle records",
+  "Local-first data architecture using parquet for high-volume research artifacts",
+  "Cortex-backed LLM/RAG workflows for project memory and lower-token handoffs"
+];
+
+const homeTeasers: {
+  title: string;
+  copy: string;
+  cta: string;
+  section: SectionKey;
+}[] = [
+  {
+    title: "Realtime Trading",
+    copy: "One market-data stream feeds multiple independent decision engines.",
+    cta: "View live flow ->",
+    section: "live"
+  },
+  {
+    title: "Architecture",
+    copy: "Contracts, not code branches, keep the system stable under iteration.",
+    cta: "Break it down ->",
+    section: "architecture"
+  },
+  {
+    title: "Pipelines",
+    copy: "New research, filtering, and backtest workflows plug into a shared execution lifecycle.",
+    cta: "See the lifecycle ->",
+    section: "pipelines"
+  }
 ];
 
 type HomeLandingProps = {
@@ -87,16 +208,24 @@ function HomeLanding({ onNavigate }: HomeLandingProps) {
 
       <div className="home-copy">
         <span className="section-kicker">Fenrir portfolio demo</span>
-        <h1 id="home-title">Private trading infrastructure, shown safely.</h1>
+        <h1 id="home-title">Production trading infrastructure.<br />Built end-to-end by one engineer.</h1>
         <p>
-          Fenrir is the portfolio face of my private st-engine project: a database-centered trading platform for market-data ingestion,
-          vectorized research and backtesting, strategy refinement, scheduled jobs, live bot orchestration, and execution monitoring.
-          This demo uses sanitized data and architecture views to show the engineering scale without exposing private source code.
+          A private system for realtime execution, research, and automation — shown without exposing source code or proprietary strategy logic.
         </p>
         <div className="home-actions" aria-label="Landing page actions">
-          <button className="primary" type="button" onClick={() => onNavigate("live")}>Live Trading</button>
-          <button type="button" onClick={() => onNavigate("pipelines")}>Pipelines</button>
-          <button type="button" onClick={() => onNavigate("architecture")}>Architecture</button>
+          <button className="primary" type="button" onClick={() => onNavigate("live")}>View Live Trading</button>
+          <button type="button" onClick={() => onNavigate("architecture")}>See Architecture</button>
+          <button className="text-link" type="button" onClick={() => onNavigate("pipelines")}>Explore Pipelines</button>
+        </div>
+
+        <div className="home-teasers" aria-label="Showcase paths">
+          {homeTeasers.map((card) => (
+            <button type="button" key={card.title} onClick={() => onNavigate(card.section)}>
+              <h2>{card.title}</h2>
+              <p>{card.copy}</p>
+              <span>{card.cta}</span>
+            </button>
+          ))}
         </div>
       </div>
     </section>
@@ -108,12 +237,22 @@ function PipelinesSection() {
     <section className="showcase-page" aria-labelledby="pipelines-title">
       <div className="showcase-hero compact-hero">
         <span className="section-kicker">Pipeline design</span>
-        <h2 id="pipelines-title">Generic jobs make new data and analysis flows cheap to add.</h2>
+        <h2 id="pipelines-title">New workflows don’t require new infrastructure.</h2>
         <p>
-          The system separates job contracts, partition plans, vectorized computation, and persistence. That lets ingestion,
-          filtering, backtesting, and live operations reuse the same orchestration shape while scaling different workloads.
+          Jobs are registered, validated, executed, and persisted through a shared contract. Research, filtering, backtesting,
+          and live operations all reuse the same lifecycle.
         </p>
       </div>
+
+      <div className="job-lifecycle-strip" aria-label="Job lifecycle">
+        {jobLifecycle.map((step, index) => (
+          <span key={step}>
+            {step}
+            {index < jobLifecycle.length - 1 && <i aria-hidden="true">-&gt;</i>}
+          </span>
+        ))}
+      </div>
+      <p className="pipeline-caption">Every job follows the same lifecycle. No custom orchestration required.</p>
 
       <div className="insight-grid three-up">
         {pipelineHighlights.map((item) => (
@@ -135,6 +274,19 @@ function PipelinesSection() {
         ))}
       </div>
 
+      <section className="pipeline-scale" aria-labelledby="pipeline-scale-title">
+        <div>
+          <h3 id="pipeline-scale-title">Why this system moves fast</h3>
+          <p>
+            Heavy workloads are partitioned and executed in parallel, allowing large-scale filtering and backtesting
+            without blocking orchestration.
+          </p>
+        </div>
+        <ul>
+          {scaleReasons.map((reason) => <li key={reason}>{reason}</li>)}
+        </ul>
+      </section>
+
       <div className="evidence-grid">
         {showcaseData.benchmarks.map((benchmark) => (
           <article className="evidence-card" key={benchmark.id}>
@@ -149,16 +301,41 @@ function PipelinesSection() {
 }
 
 function ArchitectureSection() {
+  const diagramNode = (id: string) => {
+    const node = architectureDiagramNodes.find((item) => item.id === id);
+    if (!node) {
+      return null;
+    }
+    return (
+      <article className={`diagram-node node-${node.id}`} key={node.id}>
+        <h3>{node.title}</h3>
+        <p>{node.detail}</p>
+      </article>
+    );
+  };
+
   return (
     <section className="showcase-page" aria-labelledby="architecture-title">
       <div className="showcase-hero compact-hero">
         <span className="section-kicker">Architecture</span>
-        <h2 id="architecture-title">Durable contracts keep a complex trading system understandable.</h2>
+        <h2 id="architecture-title">Complex systems stay stable when contracts define behavior.</h2>
         <p>
-          Fenrir favors database-backed state, thin orchestration, explicit model boundaries, and auditable run summaries.
-          The goal is not a clever demo path; it is repeatable engineering across research, backtest, and live execution.
+          State lives in the database. Execution is orchestrated through thin services. The system is designed for repeatable behavior
+          across research, backtesting, and live trading.
         </p>
       </div>
+
+      <section className="architecture-structure" aria-labelledby="architecture-structure-title">
+        <h3 id="architecture-structure-title">System structure</h3>
+        <div>
+          {architectureGroups.map((group) => (
+            <article key={group.title}>
+              <span>{group.title}</span>
+              <p>{group.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <div className="architecture-flow" aria-label="Architecture contract flow">
         {architectureFlow.map((node) => <span key={node}>{node}</span>)}
@@ -171,6 +348,51 @@ function ArchitectureSection() {
             <p>{card.body}</p>
           </article>
         ))}
+      </div>
+
+      <section className="architecture-list-section" aria-labelledby="architecture-reasons-title">
+        <h3 id="architecture-reasons-title">Why this system doesn’t collapse under change</h3>
+        <ul>
+          {architectureReasons.map((reason) => <li key={reason}>{reason}</li>)}
+        </ul>
+      </section>
+
+      <article className="architecture-diagram">
+        <div>
+          <span>System map</span>
+          <h3>Control, execution, and data boundaries</h3>
+        </div>
+        <div className="architecture-map" aria-label="Architecture system map">
+          <div className="map-flow">
+            <div className="diagram-column">{diagramNode("mobile")}</div>
+            <div className="diagram-column">{diagramNode("api")}</div>
+            <div className="diagram-column">{diagramNode("db")}</div>
+            <div className="diagram-column">{diagramNode("daemon")}</div>
+            <div className="diagram-column">{diagramNode("workers")}</div>
+          </div>
+          <div className="map-branches">
+            {diagramNode("streams")}
+            {diagramNode("storage")}
+            {diagramNode("cortex")}
+          </div>
+        </div>
+        <p>A local-first system where control, execution, and data layers are explicitly separated but tightly coordinated.</p>
+      </article>
+
+      <div className="architecture-bottom-grid">
+        <section className="architecture-list-section" aria-labelledby="architecture-constraints-title">
+          <h3 id="architecture-constraints-title">Designed under real constraints</h3>
+          <ul>
+            {architectureConstraints.map((constraint) => <li key={constraint}>{constraint}</li>)}
+          </ul>
+        </section>
+
+        <section className="architecture-list-section" aria-labelledby="architecture-tradeoffs-title">
+          <h3 id="architecture-tradeoffs-title">Tradeoffs</h3>
+          <ul>
+            {architectureTradeoffs.map((tradeoff) => <li key={tradeoff}>{tradeoff}</li>)}
+          </ul>
+        </section>
       </div>
     </section>
   );
@@ -223,16 +445,16 @@ function AboutSection() {
     <section className="showcase-page" aria-labelledby="about-title">
       <div className="showcase-hero compact-hero">
         <span className="section-kicker">About st-engine / Fenrir</span>
-        <h2 id="about-title">A private platform for research, automation, and live trading operations.</h2>
+        <h2 id="about-title">This started as a trading engine.<br />It became a systems engineering proving ground.</h2>
         <p>
-          st-engine is the private backend. Fenrir is the portfolio-safe showcase layer: it explains the architecture,
-          data volume, live behavior, and LLM-assisted project memory without publishing the source repository.
+          st-engine is a private platform for market-data ingestion, research, backtesting, live bot orchestration, scheduling,
+          mobile operations, and LLM-assisted project memory.
         </p>
       </div>
 
       <div className="about-layout">
         <article className="about-panel">
-          <h3>What the system demonstrates</h3>
+          <h3>What the system proves</h3>
           <ul>
             {aboutFeatures.map((feature) => <li key={feature}>{feature}</li>)}
           </ul>
@@ -240,8 +462,8 @@ function AboutSection() {
         <article className="about-panel accent-panel">
           <span>Showcase boundary</span>
           <p>
-            The site intentionally uses sanitized symbols, mock identifiers, rewritten excerpts, and architecture diagrams.
-            It is built to communicate engineering scale to startups and hiring teams without leaking strategy logic or private code.
+            Fenrir shows the architecture, flow, and operational behavior without publishing private source code, credentials,
+            production identifiers, or strategy logic.
           </p>
         </article>
       </div>

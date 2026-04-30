@@ -9,23 +9,23 @@ const reductionSteps = [
 const flowSteps = [
   {
     number: "01",
-    title: "Refresh broad market data",
-    detail: "Morning jobs download bars, refresh market context, and make sure the day starts with current inputs."
+    title: "Prepare the market before open",
+    detail: "Scheduled jobs refresh symbols, bars, quotes, market context, and strategy-specific filter inputs before the live session begins."
   },
   {
     number: "02",
-    title: "Reduce before live trading",
-    detail: "Filters compress the day from a broad symbol catalog into a small set worth watching at market open."
+    title: "Compress the search space",
+    detail: "Database-backed filters reduce thousands of possible symbols into a watchlist small enough for low-latency recomputation."
   },
   {
     number: "03",
-    title: "Recompute from fresh bars",
-    detail: "Selected symbols warm recent bars, vectorize indicators, and recalculate strategy-specific conditions every few seconds."
+    title: "Recompute on fresh bars",
+    detail: "The bar manager warms recent history, merges websocket second bars, aligns multiple timeframes, and feeds strategy analysis every cycle."
   },
   {
     number: "04",
-    title: "Rank, execute, and manage risk",
-    detail: "Independent bots rank their own signals, submit demo-safe orders, then track exits, P&L, and risk state."
+    title: "Decide, execute, and contain risk",
+    detail: "Each bot evaluates entry/exit gates, max positions, account blockers, cooldowns, sizing, stop loss, take profit, partial exits, and session governors."
   }
 ];
 
@@ -59,27 +59,27 @@ const replayRows = [
 ];
 
 const scaleStats = [
-  { value: "250", label: "recent bars vectorized per selected symbol" },
-  { value: "9", label: "symbols routed across bot-owned subscriptions" },
-  { value: "3", label: "isolated bots recomputing rankings and risk state" }
+  { value: "250", label: "recent bars warmed and aligned per selected symbol" },
+  { value: "9", label: "symbols routed through one shared stream" },
+  { value: "3", label: "bots with isolated candidates, positions, and risk state" }
 ];
 
 const engineeringNotes = [
   {
-    title: "Backtests preprocess; live trading recomputes",
-    detail: "Historical refinement benefits from vectorized feature frames that are prepared once and reused across many runs. Live trading is different: fresh bars change the decision surface, so selected symbols are recalculated repeatedly during the session."
+    title: "Backtests preprocess; live trading adapts",
+    detail: "Historical refinement can precompute reusable feature frames. The live path cannot assume yesterday's surface still applies, so each selected symbol is recalculated from current bars during the session."
   },
   {
-    title: "Indicators first, strategy conditions second",
-    detail: "Each live pass warms roughly 250 recent bars per selected symbol, normalizes the bar frame, vectorizes technical indicators, then evaluates strategy-owned custom conditions against the latest rows before ranking signals."
+    title: "Indicators feed strategy-owned conditions",
+    detail: "Each pass normalizes bars, aligns timeframes, vectorizes technical indicators, evaluates strategy-specific conditions, then persists comparable signal and lifecycle vocabulary for audit."
   },
   {
-    title: "One stream, isolated bot state",
-    detail: "The brokerage data provider allows a single websocket connection. A shared bar manager handles intake and normalization, while each bot owns its subscription map, candidate ranking, open-position state, and risk exits."
+    title: "One stream, many independent decision loops",
+    detail: "Provider limits make a shared websocket practical. The shared bar manager handles intake and normalization, while each bot owns its candidate set, subscription map, rankings, positions, pending orders, and exits."
   },
   {
-    title: "Contract parity without identical timing",
-    detail: "Backtests and live trading share signal names, decision states, lifecycle events, and risk vocabulary. The computation timing differs, but the persisted language stays comparable enough for audits and refinement feedback."
+    title: "Risk is part of the decision engine",
+    detail: "The bot does more than chase signals: it checks trading windows, pending orders, max open positions, account protections, re-entry cooldowns, profit/loss tiers, drawdown governors, and broker reconciliation."
   }
 ];
 
@@ -89,10 +89,11 @@ export default function LiveTradingPage() {
       <section className="live-section live-landing" aria-label="Live trading landing">
         <div className="landing-copy">
           <span className="section-kicker">Fenrir live execution</span>
-          <h2 id="live-title">Narrow the market before realtime decisions.</h2>
+          <h2 id="live-title">Realtime market decisions across parallel bot loops.</h2>
           <p>
-            Morning jobs refresh broad market context and reduce the candidate set. Once live, independent bots
-            recompute indicators from fresh bars, score strategy conditions, and turn ranked signals into orders and exits.
+            st-engine uses a shared market-data websocket to feed multiple independent trading bots. The architecture narrows the market
+            before open, routes fresh bars through a shared manager, then lets each bot recompute indicators, score complex strategy
+            conditions, rank candidates, manage broker state, and make risk-aware decisions in parallel.
           </p>
           <div className="landing-actions" aria-label="Live trading actions">
             <a href="#live-flow">View the flow</a>
@@ -114,9 +115,9 @@ export default function LiveTradingPage() {
 
       <section className="live-section flow-section" id="live-flow" aria-label="Live trading workflow">
         <div className="section-lead">
-          <span className="section-kicker">One clean path</span>
-          <h2>Narrowed symbols keep live recomputation small.</h2>
-          <p>Heavy historical processing belongs to backtesting. The live path stays fast by reducing the symbol set first.</p>
+          <span className="section-kicker">Realtime path</span>
+          <h2>Fast decisions start with ruthless reduction.</h2>
+          <p>The live loop is quick because the expensive work happens upstream: broad scans become focused watchlists before websocket-driven recomputation begins.</p>
         </div>
         <div className="flow-ladder">
           {flowSteps.map((step) => (
@@ -132,8 +133,8 @@ export default function LiveTradingPage() {
       <section className="live-section replay-section" id="session-replay" aria-label="Sanitized live session replay">
         <div className="section-lead">
           <span className="section-kicker">Sanitized session log</span>
-          <h2>Market-open logs show concurrent bot analysis.</h2>
-          <p>Static Eastern-time logs show the full flow without rushing the reader or exposing production identifiers.</p>
+          <h2>Market-open logs show the system thinking in parallel.</h2>
+          <p>Sanitized Eastern-time logs show the sequence: scheduled filtering, stream startup, bar warming, per-bot analysis, ranking, order intent, and risk tracking.</p>
         </div>
         <div className="replay-grid">
           <div className="log-panel" aria-label="Static live session log">
@@ -168,8 +169,8 @@ export default function LiveTradingPage() {
       <section className="live-section socket-section" id="socket-routing" aria-label="Shared stream and bot-owned subscriptions">
         <div className="section-lead">
           <span className="section-kicker">Shared feed, isolated decisions</span>
-          <h2>One market-data stream serves independent bots.</h2>
-          <p>The stream is shared because it has to be. Subscriptions, positions, and risk decisions stay isolated.</p>
+          <h2>One websocket does the intake; each bot owns the judgment.</h2>
+          <p>The hard part is not opening a stream. The hard part is routing one stream into isolated, auditable decision loops without mixing candidates, positions, or risk state.</p>
         </div>
         <div className="socket-diagram">
           <div className="socket-path">
@@ -201,8 +202,8 @@ export default function LiveTradingPage() {
       <section className="live-section notes-section" aria-label="Engineering notes">
         <div className="section-lead">
           <span className="section-kicker">Engineering notes</span>
-          <h2>The deeper implementation choices.</h2>
-          <p>These are the details that keep the demo honest without exposing strategy logic or private source code.</p>
+          <h2>The technical depth behind the live demo.</h2>
+          <p>The page is sanitized, but the implementation shape is real: websocket intake, bar alignment, typed analysis DTOs, database persistence, broker reconciliation, and stateful risk controls.</p>
         </div>
         <div className="engineering-notes">
           {engineeringNotes.map((note) => (
